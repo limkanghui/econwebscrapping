@@ -89,49 +89,51 @@ for i in links:
     workingpapersauthorsotherversion = []
     articleotherversion = []
     articlesauthorsotherversion = []
-    if possiblepublications[0] == 'Working papers':
-        table = soup.find('ol', attrs={'class': 'list-group'})
-        for li in table.find_all('li', recursive=False):
-            for div in li.findAll('div'):
-                workingpaperotherversion.append(div.b.text)
-                workingpapersauthorsotherversion.append(div.li.contents[0])
-        for li in table.find_all('li', recursive=False):
-            for b in li.findAll('b'):
-                workingpapers.append(b.text)
-        for li in table.find_all('li', recursive=True):
-            workingpapersauthors.append(li.contents[0])
-    if possiblepublications[1] == 'Articles':
-        table = soup.find('ol', attrs={'class': 'list-group'})
-        table2 = table.find_next_sibling('ol')
-        for li in table2.find_all('li', recursive=False):
-            for div in li.findAll('div'):
-                articleotherversion.append(div.b.text)
-                articlesauthorsotherversion.append(div.li.contents[0])
-        for li in table2.find_all('li', recursive=False):
-            for b in li.findAll('b'):
-                articles.append(b.text)
-        for li in table2.find_all('li', recursive=True):
-            articlesauthors.append(li.contents[0])
-    if possiblepublications[0] == 'Articles':
-        table = soup.find('ol', attrs={'class': 'list-group'})
-        for li in table.find_all('li', recursive=False):
-            for div in li.findAll('div'):
-                articleotherversion.append(div.b.text)
-                articlesauthorsotherversion.append(div.li.contents[0])
-        for li in table.find_all('li', recursive=False):
-            for b in li.findAll('b'):
-                articles.append(b.text)
-        for li in table.find_all('li', recursive=True):
-            articlesauthors.append(li.contents[0])
 
-    for i in workingpaperotherversion:
-        workingpapers.remove(i)
-    for i in articleotherversion:
-        articles.remove(i)
-    for i in workingpapersauthorsotherversion:
-        workingpapersauthors.remove(i)
-    for i in articlesauthorsotherversion:
-        articlesauthors.remove(i)
+    if len(possiblepublications) > 0: # If there are any publications
+        if possiblepublications[0] == 'Working papers':
+            table = soup.find('ol', attrs={'class': 'list-group'})
+            for li in table.find_all('li', recursive=False):
+                for div in li.findAll('div'):
+                    workingpaperotherversion.append(div.b.text)
+                    workingpapersauthorsotherversion.append(div.li.contents[0])
+            for li in table.find_all('li', recursive=False):
+                for b in li.findAll('b'):
+                    workingpapers.append(b.text)
+            for li in table.find_all('li', recursive=True):
+                workingpapersauthors.append(li.contents[0])
+        if possiblepublications[1] == 'Articles':
+            table = soup.find('ol', attrs={'class': 'list-group'})
+            table2 = table.find_next_sibling('ol')
+            for li in table2.find_all('li', recursive=False):
+                for div in li.findAll('div'):
+                    articleotherversion.append(div.b.text)
+                    articlesauthorsotherversion.append(div.li.contents[0])
+            for li in table2.find_all('li', recursive=False):
+                for b in li.findAll('b'):
+                    articles.append(b.text)
+            for li in table2.find_all('li', recursive=True):
+                articlesauthors.append(li.contents[0])
+        if possiblepublications[0] == 'Articles':
+            table = soup.find('ol', attrs={'class': 'list-group'})
+            for li in table.find_all('li', recursive=False):
+                for div in li.findAll('div'):
+                    articleotherversion.append(div.b.text)
+                    articlesauthorsotherversion.append(div.li.contents[0])
+            for li in table.find_all('li', recursive=False):
+                for b in li.findAll('b'):
+                    articles.append(b.text)
+            for li in table.find_all('li', recursive=True):
+                articlesauthors.append(li.contents[0])
+
+        for i in workingpaperotherversion:
+            workingpapers.remove(i)
+        for i in articleotherversion:
+            articles.remove(i)
+        for i in workingpapersauthorsotherversion:
+            workingpapersauthors.remove(i)
+        for i in articlesauthorsotherversion:
+            articlesauthors.remove(i)
 
     A = ''
     B = ''
