@@ -181,8 +181,8 @@ for i in links:
     print('Progress: {} out of {} for {}'.format(counter, len(names), name))
     counter += 1
 
-    if counter == 5:
-       break
+    #if counter == 5:
+    #  break
 
 data_store_columns = ['name', 'first name', 'middle name', 'last name', 'suffix', 'repecshortID', 'email',
                       'homepage', 'postal address', 'phone', 'twitterhandle', 'Top Female', 'Gender',
