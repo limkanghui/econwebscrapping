@@ -90,36 +90,41 @@ for i in links:
     articleotherversion = []
     articlesauthorsotherversion = []
 
-    if len(possiblepublications) > 0: # If there are any publications
+    if len(possiblepublications) > 0: # If author has any publications
         if possiblepublications[0] == 'Working papers':
             table = soup.find('ol', attrs={'class': 'list-group'})
             for li in table.find_all('li', recursive=False):
                 for div in li.findAll('div'):
-                    workingpaperotherversion.append(div.b.text)
-                    workingpapersauthorsotherversion.append(div.li.contents[0])
+                    for li in div.find_all('li', recursive=True):
+                        workingpaperotherversion.append(li.b.text)
+                        workingpapersauthorsotherversion.append(li.contents[0])
             for li in table.find_all('li', recursive=False):
                 for b in li.findAll('b'):
                     workingpapers.append(b.text)
             for li in table.find_all('li', recursive=True):
                 workingpapersauthors.append(li.contents[0])
+
         if possiblepublications[1] == 'Articles':
             table = soup.find('ol', attrs={'class': 'list-group'})
             table2 = table.find_next_sibling('ol')
             for li in table2.find_all('li', recursive=False):
                 for div in li.findAll('div'):
-                    articleotherversion.append(div.b.text)
-                    articlesauthorsotherversion.append(div.li.contents[0])
+                    for li in div.find_all('li', recursive=True):
+                        articleotherversion.append(li.b.text)
+                        articlesauthorsotherversion.append(li.contents[0])
             for li in table2.find_all('li', recursive=False):
                 for b in li.findAll('b'):
                     articles.append(b.text)
             for li in table2.find_all('li', recursive=True):
                 articlesauthors.append(li.contents[0])
+
         if possiblepublications[0] == 'Articles':
             table = soup.find('ol', attrs={'class': 'list-group'})
             for li in table.find_all('li', recursive=False):
                 for div in li.findAll('div'):
-                    articleotherversion.append(div.b.text)
-                    articlesauthorsotherversion.append(div.li.contents[0])
+                    for li in div.find_all('li', recursive=True):
+                        articleotherversion.append(li.b.text)
+                        articlesauthorsotherversion.append(li.contents[0])
             for li in table.find_all('li', recursive=False):
                 for b in li.findAll('b'):
                     articles.append(b.text)
