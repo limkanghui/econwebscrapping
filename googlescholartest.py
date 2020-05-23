@@ -27,7 +27,7 @@ for tr in table.tbody.findAll('tr'):
 
 proxy_pool = cycle(proxies)
 
-name = 'Lim Kang Hui'
+name = 'Lim Kang Heng'
 
 namesplit = name.split()
 search = namesplit[0]
@@ -36,42 +36,34 @@ for i in range(1, len(namesplit)):
 URL = 'https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors={}&btnG='.format(search)
 sleeptimerandom = randint(1, 2)
 time.sleep(sleeptimerandom)
-#for i in range(len(proxies)):
-#    proxy = next(proxy_pool)
-#    try:
-#        page = requests.get(URL, proxies={"http": "http://{}".format(proxy), "https": "https://{}".format(proxy)})
-#    except:
-#        print("Skipping. Connnection error")
 
 page = requests.get(URL)
-soup = BeautifulSoup(page.content, 'html.parser')
-print(soup.prettify())
-
-# Check if profile exists
-GSprofilee = True
-try:
-    div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
-except:
-    print('Profile not in Google Scholar')
-    GSprofilee = True
-
-
-div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
-numberofprofilessearched = 0
-for row in div.find_all('div', attrs={'class': 'gsc_1usr'}):
-    numberofprofilessearched += 1
-if numberofprofilessearched > 1:
-    print('more than one, {}, profiles found'.format(numberofprofilessearched))
-    with open('data_store.pkl', 'wb') as handle:
-        pickle.dump([['Authors with more than 1 profile in GS'], name], handle, protocol=pickle.HIGHEST_PROTOCOL)
-probabilityprofilecorrect = 1/numberofprofilessearched
-urltoprofile = div.a['href']
-URL = 'https://scholar.google.com{}'.format(urltoprofile)
-page = requests.get(URL)
-sleeptimerandom = randint(0, 5)
-time.sleep(sleeptimerandom)
 soup = BeautifulSoup(page.content, 'html.parser')
 #print(soup.prettify())
+
+# Check if profile exists
+GSprofile = True
+div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
+if 'match any user profiles' in div.p.text:
+    GSprofile = False
+
+if GSprofile:
+    div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
+    numberofprofilessearched = 0
+    for row in div.find_all('div', attrs={'class': 'gsc_1usr'}):
+        numberofprofilessearched += 1
+    if numberofprofilessearched > 1:
+        print('more than one, {}, profiles found'.format(numberofprofilessearched))
+        with open('data_store.pkl', 'wb') as handle:
+            pickle.dump([['Authors with more than 1 profile in GS'], name], handle, protocol=pickle.HIGHEST_PROTOCOL)
+    probabilityprofilecorrect = 1/numberofprofilessearched
+    urltoprofile = div.a['href']
+    URL = 'https://scholar.google.com{}'.format(urltoprofile)
+    page = requests.get(URL)
+    sleeptimerandom = randint(0, 5)
+    time.sleep(sleeptimerandom)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    #print(soup.prettify())
 
 def read_author_data(author_name):
     print("reading data for {0:s}".format(author_name))
@@ -97,19 +89,32 @@ def read_author_data(author_name):
     }
     return a_data
 
-a_data = read_author_data(name)
 
-totalcitations = a_data["citedby"]
-totalcitations5y = a_data["citedby5y"]
-hindex = a_data["hindex"]
-hindex5y = a_data["hindex5y"]
-i10index = a_data["i10index"]
-i10index5y = a_data["i10index5y"]
-pub = a_data["pubs"]
-GStitle = ''
-GSyear = ''
-for i in range(0, len(pub)):
-    publication = pub[i]
-    GStitle += '{}) '.format(i + 1) + publication['title'] + '\n'
-    GSyear += '{}) '.format(i + 1) + publication['year'] + '\n'
-numberofpublicationsfromGS = len(pub)
+if GSprofile:
+    a_data = read_author_data(name)
+
+    totalcitations = a_data["citedby"]
+    totalcitations5y = a_data["citedby5y"]
+    hindex = a_data["hindex"]
+    hindex5y = a_data["hindex5y"]
+    i10index = a_data["i10index"]
+    i10index5y = a_data["i10index5y"]
+    pub = a_data["pubs"]
+    GStitle = ''
+    GSyear = ''
+    for i in range(0, len(pub)):
+        publication = pub[i]
+        GStitle += '{}) '.format(i + 1) + publication['title'] + '\n'
+        GSyear += '{}) '.format(i + 1) + publication['year'] + '\n'
+    numberofpublicationsfromGS = len(pub)
+else:
+    totalcitations = 'na'
+    totalcitations5y = 'na'
+    hindex = 'na'
+    hindex5y = 'na'
+    i10index = 'na'
+    i10index5y = 'na'
+    GStitle = 'na'
+    GSyear = 'na'
+    numberofpublicationsfromGS = 'na'
+    probabilityprofilecorrect = 'na'

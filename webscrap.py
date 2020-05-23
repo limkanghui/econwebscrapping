@@ -3,13 +3,15 @@ import lxml.html as lh
 from bs4 import BeautifulSoup
 import pandas as pd
 import openpyxl
-import time
+import time, pickle
 from others import create_excel_file, print_df_to_excel
 import gender_guesser.detector as gender
+import json
+from urllib.request import urlopen
+from genderize import Genderize
 import numpy as np
 
 d = gender.Detector()
-
 
 start = time.time()
 URL = 'https://ideas.repec.org/i/etwitter.html'
@@ -72,8 +74,31 @@ for i in links:
     else:
         personaldetails.append('')
 
+    # Get gender from gender-guesser
     gender = d.get_gender(u"{}".format(personaldetails[1]))
     personaldetails.append(gender)
+
+    # Get gender from genderAPI.io
+    #apiKey = "5ec95212756fae4edb711cf2"  # Your API Key
+    #apiUrl = "https://genderapi.io/api/?name={}&key=".format(personaldetails[1]) + apiKey
+#
+    #result = urlopen(apiUrl).read().decode('utf-8')
+    #getGender = json.loads(result)
+#
+    #print("Gender: " + getGender["gender"]);
+
+    # Get gender from genderize.io
+
+    genderize = Genderize(
+        user_agent='GenderizeDocs/0.0',
+        api_key='3d58bbb9432a7f27376d4dcd489eff18',
+        timeout=5.0)
+
+    genderdictionary = genderize.get([personaldetails[1]])
+    gender2 = genderdictionary[0]["gender"]
+    gender2probability = genderdictionary[0]["probability"]
+    personaldetails.append(gender2)
+    personaldetails.append(gender2probability)
 
     workingpapers = []
     workingpapersauthors = []
@@ -186,91 +211,6 @@ for i in links:
 
     personaldata.append(personaldetails)
 
-    # Scrapping from Google Scholar
-
-    name = personaldetails[0]
-    namesplit = name.split()
-    search = namesplit[0]
-    for i in range(1, len(namesplit)):
-        search += '+' + namesplit[i]
-    URL = 'https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors={}&btnG='.format(search)
-    sleeptimerandom = randint(0, 5)
-    time.sleep(sleeptimerandom)
-    page = requests.get(URL)
-    soup = BeautifulSoup(page.content, 'html.parser')
-    # print(soup.prettify())
-    div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
-    numberofprofilessearched = 0
-    for row in div.find_all('div', attrs={'class': 'gsc_1usr'}):
-        numberofprofilessearched += 1
-    if numberofprofilessearched > 1:
-        print('more than one, {}, profiles found'.format(numberofprofilessearched))
-        with open('GoogleScholarAuthorsList.pkl', 'wb') as handle:
-            pickle.dump([['Authors with more than 1 profile in GS'], name], handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    probabilityprofilecorrect = 1 / numberofprofilessearched
-    urltoprofile = div.a['href']
-    URL = 'https://scholar.google.com{}'.format(urltoprofile)
-    page = requests.get(URL)
-    sleeptimerandom = randint(0, 5)
-    time.sleep(sleeptimerandom)
-    soup = BeautifulSoup(page.content, 'html.parser')
-
-
-    # print(soup.prettify())
-
-    def read_author_data(author_name):
-        print("reading data for {0:s}".format(author_name))
-        author = next(scholarly.search_author(author_name)).fill()
-        a_data = {
-            "name": author.name,
-            "affiliation": author.affiliation,
-            "cites_per_year": author.cites_per_year,
-            "citedby": author.citedby,
-            "citedby5y": author.citedby5y,
-            "hindex": author.hindex,
-            "hindex5y": author.hindex5y,
-            "i10index": author.i10index,
-            "i10index5y": author.i10index5y,
-            "url_picture": author.url_picture,
-            "pubs": [
-                {"title": pub.bib['title'],
-                 "year": pub.bib['year'] if "year" in pub.bib else -1,
-                 "citedby": pub.citedby if hasattr(pub, "citedby") else 0,
-                 "link": pub.id_citations if hasattr(pub, "id_citations") else ""
-                 }
-                for pub in author.publications]
-        }
-        return a_data
-
-
-    a_data = read_author_data(name)
-
-    totalcitations = a_data["citedby"]
-    totalcitations5y = a_data["citedby5y"]
-    hindex = a_data["hindex"]
-    hindex5y = a_data["hindex5y"]
-    i10index = a_data["i10index"]
-    i10index5y = a_data["i10index5y"]
-    pub = a_data["pubs"]
-    GStitle = ''
-    GSyear = ''
-    for i in range(0, len(pub)):
-        publication = pub[i]
-        GStitle += '{}) '.format(i + 1) + publication['title'] + '\n'
-        GSyear += '{}) '.format(i + 1) + publication['year'] + '\n'
-    numberofpublicationsfromGS = len(pub)
-
-    personaldetails.append(totalcitations)
-    personaldetails.append(totalcitations5y)
-    personaldetails.append(hindex)
-    personaldetails.append(hindex5y)
-    personaldetails.append(i10index)
-    personaldetails.append(i10index5y)
-    personaldetails.append(GStitle)
-    personaldetails.append(GSyear)
-
-
     print('Progress: {} out of {} for {} done'.format(counter, len(names), name))
     counter += 1
 
@@ -278,16 +218,20 @@ for i in links:
     #  break
 
 data_store_columns = ['name', 'first name', 'middle name', 'last name', 'suffix', 'repecshortID', 'email',
-                      'homepage', 'postal address', 'phone', 'twitterhandle', 'Top Female', 'Gender',
-                      'working papers authors and year', 'working papers title', 'working papers year',
-                      '# of working papers', 'articles authors and year', 'articles tile', 'article year',
-                      '# of articles']
+                      'homepage', 'postal address', 'phone', 'twitterhandle', 'Top Female', 'Gender', 'Gender (paid)',
+                      'Gender Probability (paid)', 'working papers authors and year', 'working papers title',
+                      'working papers year', '# of working papers', 'articles authors and year', 'articles tile',
+                      'article year', '# of articles']
 
 write_excel = create_excel_file('./results/{}_results.xlsx'.format('EconomicsWebScrap'))
 wb = openpyxl.load_workbook(write_excel)
 ws = wb[wb.sheetnames[-1]]
 print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns), ws=ws)
 wb.save(write_excel)
+
+# store in pkl for future retrieve (no need to rerun code again)
+with open('IDEASdata.pkl', 'wb') as handle:
+    pickle.dump([data_store_columns, personaldata], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 elapsed = (time.time() - start)/3600
 print(f"Elapsed time: {elapsed} hours")
