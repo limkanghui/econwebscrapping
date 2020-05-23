@@ -185,7 +185,93 @@ for i in links:
     personaldetails.append(len(articles))
 
     personaldata.append(personaldetails)
-    print('Progress: {} out of {} for {}'.format(counter, len(names), name))
+
+    # Scrapping from Google Scholar
+
+    name = personaldetails[0]
+    namesplit = name.split()
+    search = namesplit[0]
+    for i in range(1, len(namesplit)):
+        search += '+' + namesplit[i]
+    URL = 'https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors={}&btnG='.format(search)
+    sleeptimerandom = randint(0, 5)
+    time.sleep(sleeptimerandom)
+    page = requests.get(URL)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    # print(soup.prettify())
+    div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
+    numberofprofilessearched = 0
+    for row in div.find_all('div', attrs={'class': 'gsc_1usr'}):
+        numberofprofilessearched += 1
+    if numberofprofilessearched > 1:
+        print('more than one, {}, profiles found'.format(numberofprofilessearched))
+        with open('GoogleScholarAuthorsList.pkl', 'wb') as handle:
+            pickle.dump([['Authors with more than 1 profile in GS'], name], handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    probabilityprofilecorrect = 1 / numberofprofilessearched
+    urltoprofile = div.a['href']
+    URL = 'https://scholar.google.com{}'.format(urltoprofile)
+    page = requests.get(URL)
+    sleeptimerandom = randint(0, 5)
+    time.sleep(sleeptimerandom)
+    soup = BeautifulSoup(page.content, 'html.parser')
+
+
+    # print(soup.prettify())
+
+    def read_author_data(author_name):
+        print("reading data for {0:s}".format(author_name))
+        author = next(scholarly.search_author(author_name)).fill()
+        a_data = {
+            "name": author.name,
+            "affiliation": author.affiliation,
+            "cites_per_year": author.cites_per_year,
+            "citedby": author.citedby,
+            "citedby5y": author.citedby5y,
+            "hindex": author.hindex,
+            "hindex5y": author.hindex5y,
+            "i10index": author.i10index,
+            "i10index5y": author.i10index5y,
+            "url_picture": author.url_picture,
+            "pubs": [
+                {"title": pub.bib['title'],
+                 "year": pub.bib['year'] if "year" in pub.bib else -1,
+                 "citedby": pub.citedby if hasattr(pub, "citedby") else 0,
+                 "link": pub.id_citations if hasattr(pub, "id_citations") else ""
+                 }
+                for pub in author.publications]
+        }
+        return a_data
+
+
+    a_data = read_author_data(name)
+
+    totalcitations = a_data["citedby"]
+    totalcitations5y = a_data["citedby5y"]
+    hindex = a_data["hindex"]
+    hindex5y = a_data["hindex5y"]
+    i10index = a_data["i10index"]
+    i10index5y = a_data["i10index5y"]
+    pub = a_data["pubs"]
+    GStitle = ''
+    GSyear = ''
+    for i in range(0, len(pub)):
+        publication = pub[i]
+        GStitle += '{}) '.format(i + 1) + publication['title'] + '\n'
+        GSyear += '{}) '.format(i + 1) + publication['year'] + '\n'
+    numberofpublicationsfromGS = len(pub)
+
+    personaldetails.append(totalcitations)
+    personaldetails.append(totalcitations5y)
+    personaldetails.append(hindex)
+    personaldetails.append(hindex5y)
+    personaldetails.append(i10index)
+    personaldetails.append(i10index5y)
+    personaldetails.append(GStitle)
+    personaldetails.append(GSyear)
+
+
+    print('Progress: {} out of {} for {} done'.format(counter, len(names), name))
     counter += 1
 
     #if counter == 5:
