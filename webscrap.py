@@ -197,7 +197,7 @@ data_store_columns = ['name', 'first name', 'middle name', 'last name', 'suffix'
                       '# of working papers', 'articles authors and year', 'articles tile', 'article year',
                       '# of articles']
 
-write_excel = create_excel_file('./results/{}_results.xlsx'.format('EconomicsAuthors'))
+write_excel = create_excel_file('./results/{}_results.xlsx'.format('EconomicsWebScrap'))
 wb = openpyxl.load_workbook(write_excel)
 ws = wb[wb.sheetnames[-1]]
 print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns), ws=ws)
