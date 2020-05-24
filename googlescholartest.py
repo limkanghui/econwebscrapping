@@ -26,6 +26,8 @@ import traceback
 #
 #proxy_pool = cycle(proxies)
 
+start = time.time()
+
 with open('./IDEASdataComplete.pkl', 'rb') as handle:
     data_store = pickle.load(handle)
 df = pd.DataFrame(data = data_store[1], columns = data_store[0])
@@ -148,7 +150,7 @@ for authors in range(len(df['name'])):
 
     personaldata.append(personaldetails)
 
-    if authors > 5:
+    if authors > 0:
         break
 
 data_store_columns = ['Total Citations', 'Total Citations (5 years)', 'h-index', 'h-index (5 years)', 'i10-index',
@@ -161,3 +163,6 @@ wb = openpyxl.load_workbook(write_excel)
 ws = wb[wb.sheetnames[-1]]
 print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns), ws=ws)
 wb.save(write_excel)
+
+elapsed = (time.time() - start)/3600
+print(f"Elapsed time: {elapsed} hours")
