@@ -7,7 +7,7 @@ import openpyxl
 import time, pickle
 from others import create_excel_file, print_df_to_excel
 from scholarly import scholarly
-from random import randint, random, seed
+import random
 from lxml.html import fromstring
 import requests
 from itertools import cycle
@@ -28,15 +28,72 @@ import traceback
 
 start = time.time()
 
+
+HEADERS_LIST = [
+    'Mozilla/5.0 (Windows; U; Windows NT 6.1; x64; fr; rv:1.9.2.13) Gecko/20101203 Firebird/3.6.13',
+    'Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko',
+    'Mozilla/5.0 (Windows; U; Windows NT 6.1; rv:2.2) Gecko/20110201',
+    'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16',
+    'Mozilla/5.0 (Windows NT 5.2; RW; rv:7.0a1) Gecko/20091211 SeaMonkey/9.23a1pre'
+]
+HEADER = {'User-Agent': random.choice(HEADERS_LIST)}
+
+PROXY_URL = 'https://free-proxy-list.net/'
+
+def get_proxies():
+    response = requests.get(PROXY_URL)
+    soup = BeautifulSoup(response.text, 'lxml')
+    table = soup.find('table',id='proxylisttable')
+    list_tr = table.find_all('tr')
+    list_td = [elem.find_all('td') for elem in list_tr]
+    list_td = list(filter(None, list_td))
+    list_ip = [elem[0].text for elem in list_td]
+    list_ports = [elem[1].text for elem in list_td]
+    list_proxies = [':'.join(elem) for elem in list(zip(list_ip, list_ports))]
+    return list_proxies
+
+proxies = get_proxies()
+proxy_pool = cycle(proxies)
+
+
+
 with open('./IDEASdataComplete.pkl', 'rb') as handle:
     data_store = pickle.load(handle)
 df = pd.DataFrame(data = data_store[1], columns = data_store[0])
 
 personaldata = []
 
+def query_single_page(url, retry = 50, timeout=60):
+
+    global response
+    print('Scraping data from {}'.format(url))
+
+    try:
+        proxy = next(proxy_pool)
+        print('Using proxy {}'.format(proxy))
+        response = requests.get(url, headers=HEADER, proxies={"http": proxy}, timeout=timeout)
+        print(response)
+
+    except requests.exceptions.HTTPError as e:
+        print('HTTPError {} while requesting "{}"'.format(
+            e, url))
+    except requests.exceptions.ConnectionError as e:
+        print('ConnectionError {} while requesting "{}"'.format(
+            e, url))
+    except requests.exceptions.Timeout as e:
+        print('TimeOut {} while requesting "{}"'.format(
+            e, url))
+
+    if retry > 0:
+        print('Retrying... (Attempts left: {})'.format(retry))
+        return query_single_page(url, retry - 1)
+
+    print('Giving up.')
+    return response
+
+
 for authors in range(len(df['name'])):
     name = df['name'][authors]
-
     personaldetails = []
 
     namesplit = name.split()
@@ -45,16 +102,18 @@ for authors in range(len(df['name'])):
         search += '+' + namesplit[i]
     URL = 'https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors={}&btnG='.format(search)
 
-    # random time lag for requests
-    seed(1)
-    sleeptimerandom = 3 * random()
-    if sleeptimerandom < 0.6:
-        sleeptimerandom + 0.6
-    time.sleep(sleeptimerandom)
+    page = query_single_page(URL)
 
-    page = requests.get(URL)
+   ## random time lag for requests
+   #seed(1)
+   #sleeptimerandom = 3 * random()
+   #if sleeptimerandom < 0.6:
+   #    sleeptimerandom + 0.6
+   #time.sleep(sleeptimerandom)
+
+   #page = requests.get(URL)
     soup = BeautifulSoup(page.content, 'html.parser')
-    #print(soup.prettify())
+    print(soup.prettify())
 
     # Check if profile exists
     GSprofile = True
@@ -77,9 +136,11 @@ for authors in range(len(df['name'])):
         probabilityprofilecorrect = 1/numberofprofilessearched
         urltoprofile = div.a['href']
         URL = 'https://scholar.google.com{}'.format(urltoprofile)
-        page = requests.get(URL)
-        sleeptimerandom = randint(1, 5)
-        time.sleep(sleeptimerandom)
+
+        page = query_single_page(URL)
+        #page = requests.get(URL)
+        #sleeptimerandom = randint(1, 5)
+        #time.sleep(sleeptimerandom)
         soup = BeautifulSoup(page.content, 'html.parser')
         #print(soup.prettify())
 
