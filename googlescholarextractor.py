@@ -15,6 +15,12 @@ import traceback
 from fake_useragent import UserAgent
 from stem import Signal
 from stem.control import Controller
+import numpy as np
+
+# First index is 1, index is number of current authors
+indextostart = 1
+GScontinue = False
+
 
 start = time.time()
 
@@ -28,12 +34,25 @@ with open('./IDEASdataComplete.pkl', 'rb') as handle:
     data_store = pickle.load(handle)
 df = pd.DataFrame(data=data_store[1], columns=data_store[0])
 
+global GSdatascrap
+if GScontinue:
+    with open('./GSdatascrapIncomplete.pkl', 'wb') as handle:
+        data_store2 = pickle.load(handle)
+    GSdatascrap = pd.DataFrame(data=data_store2[1], columns=data_store2[0])
+
+
+data_store_columns = ['Name', 'Total Citations', 'Total Citations (5 years)', 'h-index', 'h-index (5 years)',
+                      'i10-index',
+                      'i10-index (5 years)', 'Journal Titles', 'Journal Years', 'Number of publications',
+                      'Probability of correct profile']
+
 numberofauthors = len(df['name'])
 personaldata = []
 
 
-for authors in range(numberofauthors):
-    name = df['name'][authors]
+for authors in range(numberofauthors - indextostart + 1):
+
+    name = df['name'][authors + indextostart - 1]
 
     print('Scrapping for {}...'.format(name))
 
@@ -86,32 +105,32 @@ for authors in range(numberofauthors):
             numberofprofilessearched += 1
         if numberofprofilessearched > 1:
             print('more than one, {}, profiles found for {}'.format(numberofprofilessearched, name))
-            with open('authorduplicate.pkl', 'wb') as handle:
+            with open('authorduplicate{}.pkl'.format(indextostart), 'wb') as handle:
                 pickle.dump([['Authors with more than 1 profile in GS'], name], handle,
                             protocol=pickle.HIGHEST_PROTOCOL)
         probabilityprofilecorrect = 1 / numberofprofilessearched
         urltoprofile = div.a['href']
         URLofprofile = 'https://scholar.google.com{}'.format(urltoprofile)
 
-
     if GSprofile:
 
         with Controller.from_port(port=9151) as c:
             c.authenticate()
             c.signal(Signal.NEWNYM)
-
-        page = requests.get(URLofprofile, proxies=proxies, headers=headers)
+        url100 = '{}&cstart=0&pagesize=100'.format(URLofprofile)
+        page = requests.get(url100, proxies=proxies, headers=headers)
 
         while True:
             if page.ok:
                 soup = BeautifulSoup(page.content, 'html.parser')
+                print("Connection Successful")
                 break
             else:
-                print('connection failed, retrying...')
+                print('Connection failed, retrying...')
                 with Controller.from_port(port=9151) as c:
                     c.authenticate()
                     c.signal(Signal.NEWNYM)
-                page = requests.get(URL, proxies=proxies, headers=headers)
+                page = requests.get(url100, proxies=proxies, headers=headers)
 
         # Check if citation table exists
         citationtableexists = True
@@ -121,7 +140,6 @@ for authors in range(numberofauthors):
         except AttributeError:
             citationtableexists = False
             pass
-
 
         # print(soup.prettify())
         citationcounts = []
@@ -135,12 +153,52 @@ for authors in range(numberofauthors):
             for td in citationtable.find_all('td', attrs={'class': 'gsc_rsb_std'}):
                 citationcounts.append(td.text)
 
-        if 'disabled' not in soup.find('button', id='gsc_bpf_more').attrs:
-            url = '{0}&cstart={1}&pagesize={2}'.format(
-                URLofprofile, 0, 1000)
-            page = requests.get(url, proxies=proxies, headers=headers)
-            soup = BeautifulSoup(page.content, 'html.parser')
+        #if 'disabled' not in soup.find('button', id='gsc_bpf_more').attrs:
+        #    url = '{0}&cstart={1}&pagesize={2}'.format(
+        #        URLofprofile, 0, 1000)
+        #    page = requests.get(url, proxies=proxies, headers=headers)
+        #    soup = BeautifulSoup(page.content, 'html.parser')
+        pubstart = 0
 
+        while True:
+            for row in soup.find_all('tr', class_='gsc_a_tr'):
+                journalextracted = []
+                # print(row.prettify())
+                journaldata = row.find('td', class_='gsc_a_t')
+                a = journaldata.find('a')
+                journalname.append(a.text)
+                for div in journaldata.find_all('div', recursive=False):
+                    if len(journalextracted) == 2:
+                        break
+                    journalextracted.append(div.text)
+                journalextracteddata.append(journalextracted[0])
+                journalextracteddata.append(journalextracted[1])
+                journalyear = row.find('td', class_='gsc_a_y')
+                journalyeardata.append(journalyear.text)
+            if 'disabled' not in soup.find('button', id='gsc_bpf_more').attrs:
+                pubstart += 100
+                URLofprofile = '{0}&cstart={1}&pagesize=100'.format(
+                    URLofprofile, pubstart)
+
+                with Controller.from_port(port=9151) as c:
+                    c.authenticate()
+                    c.signal(Signal.NEWNYM)
+                page = requests.get(URLofprofile, proxies=proxies, headers=headers)
+
+                while True:
+                    if page.ok:
+                        soup = BeautifulSoup(page.content, 'html.parser')
+                        print("Connection Successful")
+                        break
+                    else:
+                        print('Connection failed, retrying...')
+                        with Controller.from_port(port=9151) as c:
+                            c.authenticate()
+                            c.signal(Signal.NEWNYM)
+                        page = requests.get(URLofprofile, proxies=proxies, headers=headers)
+
+            else:
+                break
 
         for row in soup.find_all('tr', class_='gsc_a_tr'):
             journalextracted = []
@@ -212,23 +270,29 @@ for authors in range(numberofauthors):
     personaldetails.append(numberofpublicationsfromGS)
     personaldetails.append(probabilityprofilecorrect)
 
-    personaldata.append(personaldetails)
+    if GScontinue:
+        personaldata = GSdatascrap.values
+        data1 = np.vstack((personaldata, personaldetails))
+    else:
+        personaldata.append(personaldetails)
 
-    print('Progress: {} out of {} for {} done'.format(authors + 1, numberofauthors, name))
+    with open('GSdatascrap.pkl', 'wb') as handle:
+        pickle.dump([data_store_columns, personaldata], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    # if authors > 0:
+    print('Progress: {} out of {} for {} done'.format(authors + indextostart, numberofauthors, name))
+
+    #if authors > 3:
     #    break
 
-data_store_columns = ['Name', 'Total Citations', 'Total Citations (5 years)', 'h-index', 'h-index (5 years)',
-                      'i10-index',
-                      'i10-index (5 years)', 'Journal Titles', 'Journal Years', 'Number of publications',
-                      'Probability of correct profile']
+
 
 write_excel = create_excel_file('./results/{}_results.xlsx'.format('GSWebScrap'))
 wb = openpyxl.load_workbook(write_excel)
 ws = wb[wb.sheetnames[-1]]
 print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns), ws=ws)
 wb.save(write_excel)
+
+
 
 elapsed = (time.time() - start) / 3600
 print(f"Elapsed time: {elapsed} hours")
