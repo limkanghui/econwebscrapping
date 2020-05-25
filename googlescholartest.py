@@ -12,87 +12,85 @@ from lxml.html import fromstring
 import requests
 from itertools import cycle
 import traceback
-
-
-#URL = 'https://free-proxy-list.net/'
-#page = requests.get(URL)
-#soup = BeautifulSoup(page.content, 'html.parser')
-#table = soup.find('table', attrs={'id': 'proxylisttable'})
-##print(table.prettify())
-#proxies = []
-#for tr in table.tbody.findAll('tr'):
-#    td = tr.find('td')
-#    proxies.append(td.text)
-#
-#proxy_pool = cycle(proxies)
+from fake_useragent import UserAgent
+from stem import Signal
+from stem.control import Controller
 
 start = time.time()
 
+headers = { 'User-Agent': UserAgent().random }
+proxies = {
+    'http': 'socks5://127.0.0.1:9150',
+    'https': 'socks5://127.0.0.1:9150'
+}
 
-HEADERS_LIST = [
-    'Mozilla/5.0 (Windows; U; Windows NT 6.1; x64; fr; rv:1.9.2.13) Gecko/20101203 Firebird/3.6.13',
-    'Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko',
-    'Mozilla/5.0 (Windows; U; Windows NT 6.1; rv:2.2) Gecko/20110201',
-    'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16',
-    'Mozilla/5.0 (Windows NT 5.2; RW; rv:7.0a1) Gecko/20091211 SeaMonkey/9.23a1pre'
-]
-HEADER = {'User-Agent': random.choice(HEADERS_LIST)}
-
-PROXY_URL = 'https://free-proxy-list.net/'
-
-def get_proxies():
-    response = requests.get(PROXY_URL)
-    soup = BeautifulSoup(response.text, 'lxml')
-    table = soup.find('table',id='proxylisttable')
-    list_tr = table.find_all('tr')
-    list_td = [elem.find_all('td') for elem in list_tr]
-    list_td = list(filter(None, list_td))
-    list_ip = [elem[0].text for elem in list_td]
-    list_ports = [elem[1].text for elem in list_td]
-    list_proxies = [':'.join(elem) for elem in list(zip(list_ip, list_ports))]
-    return list_proxies
-
-proxies = get_proxies()
-proxy_pool = cycle(proxies)
-
-
+#HEADERS_LIST = [
+#    'Mozilla/5.0 (Windows; U; Windows NT 6.1; x64; fr; rv:1.9.2.13) Gecko/20101203 Firebird/3.6.13',
+#    'Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko',
+#    'Mozilla/5.0 (Windows; U; Windows NT 6.1; rv:2.2) Gecko/20110201',
+#    'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16',
+#    'Mozilla/5.0 (Windows NT 5.2; RW; rv:7.0a1) Gecko/20091211 SeaMonkey/9.23a1pre'
+#]
+#HEADER = {'User-Agent': random.choice(HEADERS_LIST)}
+#
+#PROXY_URL = 'https://free-proxy-list.net/'
+#
+#def get_proxies():
+#    response = requests.get(PROXY_URL)
+#    soup = BeautifulSoup(response.text, 'lxml')
+#    table = soup.find('table',id='proxylisttable')
+#    list_tr = table.find_all('tr')
+#    list_td = [elem.find_all('td') for elem in list_tr]
+#    list_td = list(filter(None, list_td))
+#    list_ip = [elem[0].text for elem in list_td]
+#    list_ports = [elem[1].text for elem in list_td]
+#    list_proxies = [':'.join(elem) for elem in list(zip(list_ip, list_ports))]
+#    return list_proxies
+#
+#proxies = get_proxies()
+#proxy_pool = cycle(proxies)
+#
+#
 
 with open('./IDEASdataComplete.pkl', 'rb') as handle:
     data_store = pickle.load(handle)
 df = pd.DataFrame(data = data_store[1], columns = data_store[0])
 
+numberofauthors = len(df['name'])
 personaldata = []
 
-def query_single_page(url, retry = 50, timeout=60):
+#def query_single_page(url, retry = 50, timeout=60):
+#
+#    global response
+#    print('Scraping data from {}'.format(url))
+#    responsesucceed = False
+#    try:
+#        proxy = next(proxy_pool)
+#        print('Using proxy {}'.format(proxy))
+#        response = requests.get(url, headers=HEADER, proxies={"http": proxy}, timeout=timeout)
+#        if response.ok:
+#            responsesucceed = True
+#
+#
+#    except requests.exceptions.HTTPError as e:
+#        print('HTTPError {} while requesting "{}"'.format(
+#            e, url))
+#    except requests.exceptions.ConnectionError as e:
+#        print('ConnectionError {} while requesting "{}"'.format(
+#            e, url))
+#    except requests.exceptions.Timeout as e:
+#        print('TimeOut {} while requesting "{}"'.format(
+#            e, url))
+#
+#    if retry > 0 & responsesucceed == False:
+#        print('Retrying... (Attempts left: {})'.format(retry))
+#        return query_single_page(url, retry - 1)
+#    if retry == 0 & responsesucceed == False:
+#        print('Giving up.')
+#    return response
 
-    global response
-    print('Scraping data from {}'.format(url))
 
-    try:
-        proxy = next(proxy_pool)
-        print('Using proxy {}'.format(proxy))
-        response = requests.get(url, headers=HEADER, proxies={"http": proxy}, timeout=timeout)
-        print(response)
-
-    except requests.exceptions.HTTPError as e:
-        print('HTTPError {} while requesting "{}"'.format(
-            e, url))
-    except requests.exceptions.ConnectionError as e:
-        print('ConnectionError {} while requesting "{}"'.format(
-            e, url))
-    except requests.exceptions.Timeout as e:
-        print('TimeOut {} while requesting "{}"'.format(
-            e, url))
-
-    if retry > 0:
-        print('Retrying... (Attempts left: {})'.format(retry))
-        return query_single_page(url, retry - 1)
-
-    print('Giving up.')
-    return response
-
-
-for authors in range(len(df['name'])):
+for authors in range(numberofauthors):
     name = df['name'][authors]
     personaldetails = []
 
@@ -102,18 +100,22 @@ for authors in range(len(df['name'])):
         search += '+' + namesplit[i]
     URL = 'https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors={}&btnG='.format(search)
 
-    page = query_single_page(URL)
+    # random time lag for requests
+    random.seed(1)
+    sleeptimerandom = 3 * random.random()
+    if sleeptimerandom < 0.6:
+        sleeptimerandom + 0.6
+    time.sleep(sleeptimerandom)
 
-   ## random time lag for requests
-   #seed(1)
-   #sleeptimerandom = 3 * random()
-   #if sleeptimerandom < 0.6:
-   #    sleeptimerandom + 0.6
-   #time.sleep(sleeptimerandom)
+    with Controller.from_port(port=9151) as c:
+        c.authenticate()
+        c.signal(Signal.NEWNYM)
 
-   #page = requests.get(URL)
+    page = requests.get(URL, proxies=proxies, headers=headers)
+
+    #page = requests.get(URL)
     soup = BeautifulSoup(page.content, 'html.parser')
-    print(soup.prettify())
+    #print(soup.prettify())
 
     # Check if profile exists
     GSprofile = True
@@ -132,25 +134,18 @@ for authors in range(len(df['name'])):
         if numberofprofilessearched > 1:
             print('more than one, {}, profiles found for {}'.format(numberofprofilessearched, name))
             with open('data_store.pkl', 'wb') as handle:
-                pickle.dump([['Authors with more than 1 profile in GS'], name], handle, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump([['Authors with more than 1 profile in GS'], name], handle,
+                            protocol=pickle.HIGHEST_PROTOCOL)
         probabilityprofilecorrect = 1/numberofprofilessearched
         urltoprofile = div.a['href']
-        URL = 'https://scholar.google.com{}'.format(urltoprofile)
-
-        page = query_single_page(URL)
-        #page = requests.get(URL)
-        #sleeptimerandom = randint(1, 5)
-        #time.sleep(sleeptimerandom)
-        soup = BeautifulSoup(page.content, 'html.parser')
-        #print(soup.prettify())
+        URLofprofile = 'https://scholar.google.com{}'.format(urltoprofile)
 
     def read_author_data(author_name):
         print("reading data for {0:s}...".format(author_name))
+        scholarly.use_tor(9150, 9151,'')
         author = next(scholarly.search_author(author_name)).fill()
         a_data = {
-            "name": author.name,
-            "affiliation": author.affiliation,
-            "cites_per_year": author.cites_per_year,
+            "name": name,
             "citedby": author.citedby,
             "citedby5y": author.citedby5y,
             "hindex": author.hindex,
@@ -198,6 +193,7 @@ for authors in range(len(df['name'])):
         numberofpublicationsfromGS = 'na'
         probabilityprofilecorrect = 'na'
 
+    personaldetails.append(name)
     personaldetails.append(totalcitations)
     personaldetails.append(totalcitations5y)
     personaldetails.append(hindex)
@@ -211,10 +207,12 @@ for authors in range(len(df['name'])):
 
     personaldata.append(personaldetails)
 
-    if authors > 0:
-        break
+    print('Progress: {} out of {} for {} done'.format(authors + 1, numberofauthors, name))
 
-data_store_columns = ['Total Citations', 'Total Citations (5 years)', 'h-index', 'h-index (5 years)', 'i10-index',
+    #if authors > 0:
+    #    break
+
+data_store_columns = ['Name', 'Total Citations', 'Total Citations (5 years)', 'h-index', 'h-index (5 years)', 'i10-index',
                       'i10-index (5 years)', 'Journal Titles', 'Journal Years', 'Number of publications',
                       'Probability of correct profile']
 
