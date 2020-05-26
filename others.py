@@ -40,7 +40,7 @@ def create_excel_file(excel_name):
         expand = 1
         while True:
             expand += 1
-            new_file_name = excel_name.split('.xlxs')[0] + ' - ' + str(expand) + '.xlxs'
+            new_file_name = excel_name.split('.xlsx')[0] + ' - ' + str(expand) + '.xlsx'
             if os.path.isfile(new_file_name):
                 continue
             else:
