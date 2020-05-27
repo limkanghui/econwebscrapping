@@ -18,7 +18,7 @@ from stem.control import Controller
 import numpy as np
 
 # First index is 1, index is number of current authors
-indextostart = 979
+indextostart = 268
 GScontinue = False # Do not use this, not working
 
 
@@ -30,10 +30,9 @@ proxies = {
     'https': 'socks5://127.0.0.1:9150'
 }
 
-with open('./IDEASdataComplete.pkl', 'rb') as handle:
+with open('./DuplicateAuthorsComplete.pkl', 'rb') as handle:
     data_store = pickle.load(handle)
 df = pd.DataFrame(data=data_store[1], columns=data_store[0])
-
 
 if GScontinue:
     with open('./GSdatascrap.pkl', 'rb') as handle:
@@ -45,18 +44,16 @@ data_store_columns = ['Name', 'Total Citations', 'Total Citations (5 years)', 'h
                       'i10-index', 'i10-index (5 years)', 'Journal Authors', 'Journal Titles', 'Journal Names',
                       'Journal Years', 'Number of publications', 'Probability of correct profile']
 
-numberofauthors = len(df['name'])
+numberofauthors = len(df['Names'])
 personaldata = []
-authorsduplicate = []
 
 
 for authors in range(numberofauthors - indextostart + 1):
 
-    name = df['name'][authors + indextostart - 1]
+    name = df['Names'][authors + indextostart - 1]
 
     print('Scrapping for {}...'.format(name))
 
-    personaldetails = []
 
     namesplit = name.split()
     search = namesplit[0]
@@ -97,20 +94,25 @@ for authors in range(numberofauthors - indextostart + 1):
         GSprofile = False
     except AttributeError:
         pass
-
+    URLs = []
     if GSprofile:
         div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
         numberofprofilessearched = 0
         for row in div.find_all('div', attrs={'class': 'gsc_1usr'}):
             numberofprofilessearched += 1
-        if numberofprofilessearched > 1:
-            print('more than one, {}, profiles found for {}'.format(numberofprofilessearched, name))
-            authorsduplicate.append(name)
+            urltoprofile = row.a['href']
+            URLs.append(urltoprofile)
+
         probabilityprofilecorrect = 1 / numberofprofilessearched
-        urltoprofile = div.a['href']
+
         URLofprofile = 'https://scholar.google.com{}'.format(urltoprofile)
 
-    if GSprofile:
+
+    for i in range(len(URLs)):
+
+        personaldetails = []
+
+        URLofprofile = 'https://scholar.google.com{}'.format(URLs[i])
 
         with Controller.from_port(port=9151) as c:
             c.authenticate()
@@ -239,55 +241,39 @@ for authors in range(numberofauthors - indextostart + 1):
             GSjournalname += '{}) '.format(i + 1) + journalextracteddata[i * 2 + 1] + '\n'
 
         numberofpublicationsfromGS = len(journalname)
-    else:
-        totalcitations = 'na'
-        totalcitations5y = 'na'
-        hindex = 'na'
-        hindex5y = 'na'
-        i10index = 'na'
-        i10index5y = 'na'
-        GSAuthors = 'na'
-        GStitle = 'na'
-        GSjournalname = 'na'
-        GSyear = 'na'
-        numberofpublicationsfromGS = 'na'
-        probabilityprofilecorrect = 'na'
 
-    personaldetails.append(name)
-    personaldetails.append(totalcitations)
-    personaldetails.append(totalcitations5y)
-    personaldetails.append(hindex)
-    personaldetails.append(hindex5y)
-    personaldetails.append(i10index)
-    personaldetails.append(i10index5y)
-    personaldetails.append(GSAuthors)
-    personaldetails.append(GStitle)
-    personaldetails.append(GSjournalname)
-    personaldetails.append(GSyear)
-    personaldetails.append(numberofpublicationsfromGS)
-    personaldetails.append(probabilityprofilecorrect)
+        personaldetails.append(name)
+        personaldetails.append(totalcitations)
+        personaldetails.append(totalcitations5y)
+        personaldetails.append(hindex)
+        personaldetails.append(hindex5y)
+        personaldetails.append(i10index)
+        personaldetails.append(i10index5y)
+        personaldetails.append(GSAuthors)
+        personaldetails.append(GStitle)
+        personaldetails.append(GSjournalname)
+        personaldetails.append(GSyear)
+        personaldetails.append(numberofpublicationsfromGS)
+        personaldetails.append(probabilityprofilecorrect)
 
-    if GScontinue:
-        personaldata = GSdatascrap.values
-        data1 = np.vstack((personaldata, personaldetails))
-    else:
-        personaldata.append(personaldetails)
+        if GScontinue:
+            personaldata = GSdatascrap.values
+            data1 = np.vstack((personaldata, personaldetails))
+        else:
+            personaldata.append(personaldetails)
 
-    with open('GSdatascrap{}.pkl'.format(indextostart), 'wb') as handle:
-        pickle.dump([data_store_columns, personaldata], handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('GSauthorduplicate{}.pkl'.format(indextostart), 'wb') as handle:
+            pickle.dump([data_store_columns, personaldata], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('authorduplicate{}.pkl'.format(indextostart), 'wb') as handle:
-        pickle.dump([['Authors with more than 1 profile in GS'], authorsduplicate], handle,
-                    protocol=pickle.HIGHEST_PROTOCOL)
 
     print('Progress: {} out of {} for {} done'.format(authors + indextostart, numberofauthors, name))
 
-    #if authors > 3:
+    #if authors > 0:
     #    break
 
 
 
-write_excel = create_excel_file('./results/{}_results.xlsx'.format('GSWebScrap'))
+write_excel = create_excel_file('./results/{}_results.xlsx'.format('GSauthorduplicate'))
 wb = openpyxl.load_workbook(write_excel)
 ws = wb[wb.sheetnames[-1]]
 print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns), ws=ws)
