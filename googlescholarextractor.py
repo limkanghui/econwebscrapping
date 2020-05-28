@@ -1,26 +1,16 @@
-from typing import Union
-import requests
-import lxml.html as lh
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup
 import pandas as pd
 import openpyxl
 import time, pickle
 from others import create_excel_file, print_df_to_excel
-from scholarly import scholarly
 import random
-from lxml.html import fromstring
 import requests
-from itertools import cycle
-import traceback
 from fake_useragent import UserAgent
 from stem import Signal
 from stem.control import Controller
-import numpy as np
 
 # First index is 1, index is number of current authors
-indextostart = 979
-GScontinue = False # Do not use this, not working
-
+indextostart = 1
 
 start = time.time()
 
@@ -34,13 +24,6 @@ with open('./IDEASdataComplete.pkl', 'rb') as handle:
     data_store = pickle.load(handle)
 df = pd.DataFrame(data=data_store[1], columns=data_store[0])
 
-
-if GScontinue:
-    with open('./GSdatascrap.pkl', 'rb') as handle:
-        data_store2 = pickle.load(handle)
-    GSdatascrap = pd.DataFrame(data=data_store2[1], columns=data_store2[0])
-
-
 data_store_columns = ['Name', 'Total Citations', 'Total Citations (5 years)', 'h-index', 'h-index (5 years)',
                       'i10-index', 'i10-index (5 years)', 'Journal Authors', 'Journal Titles', 'Journal Names',
                       'Journal Years', 'Number of publications', 'Probability of correct profile']
@@ -53,7 +36,6 @@ authorsduplicate = []
 for authors in range(numberofauthors - indextostart + 1):
 
     name = df['name'][authors + indextostart - 1]
-
     print('Scrapping for {}...'.format(name))
 
     personaldetails = []
@@ -71,15 +53,18 @@ for authors in range(numberofauthors - indextostart + 1):
         sleeptimerandom + 0.6
     time.sleep(sleeptimerandom)
 
+    # Get new IP address
     with Controller.from_port(port=9151) as c:
         c.authenticate()
         c.signal(Signal.NEWNYM)
 
     page = requests.get(URL, proxies=proxies, headers=headers)
 
+    # reconnect if page can't be reached
     while True:
         if page.ok:
             soup = BeautifulSoup(page.content, 'html.parser')
+            print("Connection Successful")
             break
         else:
             print('connection failed, retrying...')
@@ -112,12 +97,14 @@ for authors in range(numberofauthors - indextostart + 1):
 
     if GSprofile:
 
+        # Get new IP address
         with Controller.from_port(port=9151) as c:
             c.authenticate()
             c.signal(Signal.NEWNYM)
         url100 = '{}&cstart=0&pagesize=100'.format(URLofprofile)
         page = requests.get(url100, proxies=proxies, headers=headers)
 
+        # reconnect if page can't be reached
         while True:
             if page.ok:
                 soup = BeautifulSoup(page.content, 'html.parser')
@@ -267,11 +254,7 @@ for authors in range(numberofauthors - indextostart + 1):
     personaldetails.append(numberofpublicationsfromGS)
     personaldetails.append(probabilityprofilecorrect)
 
-    if GScontinue:
-        personaldata = GSdatascrap.values
-        data1 = np.vstack((personaldata, personaldetails))
-    else:
-        personaldata.append(personaldetails)
+    personaldata.append(personaldetails)
 
     with open('GSdatascrap{}.pkl'.format(indextostart), 'wb') as handle:
         pickle.dump([data_store_columns, personaldata], handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -286,13 +269,11 @@ for authors in range(numberofauthors - indextostart + 1):
     #    break
 
 
-
 write_excel = create_excel_file('./results/{}_results.xlsx'.format('GSWebScrap'))
 wb = openpyxl.load_workbook(write_excel)
 ws = wb[wb.sheetnames[-1]]
 print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns), ws=ws)
 wb.save(write_excel)
-
 
 
 elapsed = (time.time() - start) / 3600
