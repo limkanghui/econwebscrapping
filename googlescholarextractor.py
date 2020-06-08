@@ -54,9 +54,9 @@ for authors in range(numberofauthors - indextostart + 1):
     time.sleep(sleeptimerandom)
 
     # Get new IP address
-    with Controller.from_port(port=9151) as c:
-        c.authenticate()
-        c.signal(Signal.NEWNYM)
+    #with Controller.from_port(port=9151) as c:
+    #    c.authenticate()
+    #    c.signal(Signal.NEWNYM)
 
     page = requests.get(URL, proxies=proxies, headers=headers)
 
@@ -64,14 +64,16 @@ for authors in range(numberofauthors - indextostart + 1):
     while True:
         if page.ok:
             soup = BeautifulSoup(page.content, 'html.parser')
-            print("Connection Successful")
+            IPaddress = requests.get('https://ident.me', proxies=proxies).text
+            print("Connection Successful with {}".format(IPaddress))
             break
         else:
-            print('connection failed, retrying...')
             with Controller.from_port(port=9151) as c:
                 c.authenticate()
                 c.signal(Signal.NEWNYM)
             page = requests.get(URL, proxies=proxies, headers=headers)
+            IPaddress = requests.get('https://ident.me', proxies=proxies).text
+            print('Connection failed, retrying with {}...'.format(IPaddress))
 
 
     # Check if profile exists
@@ -98,9 +100,9 @@ for authors in range(numberofauthors - indextostart + 1):
     if GSprofile:
 
         # Get new IP address
-        with Controller.from_port(port=9151) as c:
-            c.authenticate()
-            c.signal(Signal.NEWNYM)
+       #with Controller.from_port(port=9151) as c:
+       #    c.authenticate()
+       #    c.signal(Signal.NEWNYM)
         url100 = '{}&cstart=0&pagesize=100'.format(URLofprofile)
         page = requests.get(url100, proxies=proxies, headers=headers)
 
@@ -108,14 +110,17 @@ for authors in range(numberofauthors - indextostart + 1):
         while True:
             if page.ok:
                 soup = BeautifulSoup(page.content, 'html.parser')
-                print("Connection Successful")
+                IPaddress = requests.get('https://ident.me', proxies=proxies).text
+                print("Connection Successful with {}".format(IPaddress))
                 break
             else:
-                print('Connection failed, retrying...')
                 with Controller.from_port(port=9151) as c:
                     c.authenticate()
                     c.signal(Signal.NEWNYM)
                 page = requests.get(url100, proxies=proxies, headers=headers)
+                IPaddress = requests.get('https://ident.me', proxies=proxies).text
+                print('Connection failed, retrying with {}...'.format(IPaddress))
+
 
         # Check if citation table exists
         citationtableexists = True
@@ -160,22 +165,24 @@ for authors in range(numberofauthors - indextostart + 1):
                 URLofprofile = '{0}&cstart={1}&pagesize=100'.format(
                     URLofprofile, pubstart)
 
-                with Controller.from_port(port=9151) as c:
-                    c.authenticate()
-                    c.signal(Signal.NEWNYM)
+                #with Controller.from_port(port=9151) as c:
+                #    c.authenticate()
+                #    c.signal(Signal.NEWNYM)
                 page = requests.get(URLofprofile, proxies=proxies, headers=headers)
 
                 while True:
                     if page.ok:
                         soup = BeautifulSoup(page.content, 'html.parser')
-                        print("Connection Successful")
+                        IPaddress = requests.get('https://ident.me', proxies=proxies).text
+                        print("Connection Successful with {}".format(IPaddress))
                         break
                     else:
-                        print('Connection failed, retrying...')
                         with Controller.from_port(port=9151) as c:
                             c.authenticate()
                             c.signal(Signal.NEWNYM)
                         page = requests.get(URLofprofile, proxies=proxies, headers=headers)
+                        IPaddress = requests.get('https://ident.me', proxies=proxies).text
+                        print('Connection failed, retrying with {}...'.format(IPaddress))
 
             else:
                 break
