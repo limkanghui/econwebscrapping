@@ -8,6 +8,8 @@ import requests
 from fake_useragent import UserAgent
 from stem import Signal
 from stem.control import Controller
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 # First index is 1, index is number of current authors
 indextostart = 1
@@ -32,10 +34,12 @@ numberofauthors = len(df['name'])
 personaldata = []
 authorsduplicate = []
 
-
 for authors in range(numberofauthors - indextostart + 1):
 
     name = df['name'][authors + indextostart - 1]
+
+    name = 'Johannes Boehm'
+
     print('Scrapping for {}...'.format(name))
 
     personaldetails = []
@@ -54,12 +58,11 @@ for authors in range(numberofauthors - indextostart + 1):
     time.sleep(sleeptimerandom)
 
     # Get new IP address
-    #with Controller.from_port(port=9151) as c:
+    # with Controller.from_port(port=9151) as c:
     #    c.authenticate()
     #    c.signal(Signal.NEWNYM)
 
     page = requests.get(URL, proxies=proxies, headers=headers)
-
     # reconnect if page can't be reached
     while True:
         if page.ok:
@@ -75,7 +78,6 @@ for authors in range(numberofauthors - indextostart + 1):
             IPaddress = requests.get('https://ident.me', proxies=proxies).text
             print('Connection failed, retrying with {}...'.format(IPaddress))
 
-
     # Check if profile exists
     GSprofile = True
     div = soup.find('div', attrs={'id': 'gsc_sa_ccl'})
@@ -90,9 +92,12 @@ for authors in range(numberofauthors - indextostart + 1):
         numberofprofilessearched = 0
         for row in div.find_all('div', attrs={'class': 'gsc_1usr'}):
             numberofprofilessearched += 1
-        if numberofprofilessearched > 1:
+
+        if 1 < numberofprofilessearched < 10:
             print('more than one, {}, profiles found for {}'.format(numberofprofilessearched, name))
             authorsduplicate.append(name)
+        if numberofprofilessearched == 10:
+            print('10 or more profiles found for {}'.format(numberofprofilessearched, name))
         probabilityprofilecorrect = 1 / numberofprofilessearched
         urltoprofile = div.a['href']
         URLofprofile = 'https://scholar.google.com{}'.format(urltoprofile)
@@ -100,9 +105,9 @@ for authors in range(numberofauthors - indextostart + 1):
     if GSprofile:
 
         # Get new IP address
-       #with Controller.from_port(port=9151) as c:
-       #    c.authenticate()
-       #    c.signal(Signal.NEWNYM)
+        # with Controller.from_port(port=9151) as c:
+        #    c.authenticate()
+        #    c.signal(Signal.NEWNYM)
         url100 = '{}&cstart=0&pagesize=100'.format(URLofprofile)
         page = requests.get(url100, proxies=proxies, headers=headers)
 
@@ -120,7 +125,6 @@ for authors in range(numberofauthors - indextostart + 1):
                 page = requests.get(url100, proxies=proxies, headers=headers)
                 IPaddress = requests.get('https://ident.me', proxies=proxies).text
                 print('Connection failed, retrying with {}...'.format(IPaddress))
-
 
         # Check if citation table exists
         citationtableexists = True
@@ -165,7 +169,7 @@ for authors in range(numberofauthors - indextostart + 1):
                 URLofprofile = '{0}&cstart={1}&pagesize=100'.format(
                     URLofprofile, pubstart)
 
-                #with Controller.from_port(port=9151) as c:
+                # with Controller.from_port(port=9151) as c:
                 #    c.authenticate()
                 #    c.signal(Signal.NEWNYM)
                 page = requests.get(URLofprofile, proxies=proxies, headers=headers)
@@ -189,7 +193,7 @@ for authors in range(numberofauthors - indextostart + 1):
 
         for row in soup.find_all('tr', class_='gsc_a_tr'):
             journalextracted = []
-            #print(row.prettify())
+            # print(row.prettify())
             journaldata = row.find('td', class_='gsc_a_t')
             a = journaldata.find('a')
             journalname.append(a.text)
@@ -201,7 +205,6 @@ for authors in range(numberofauthors - indextostart + 1):
             journalextracteddata.append(journalextracted[1])
             journalyear = row.find('td', class_='gsc_a_y')
             journalyeardata.append(journalyear.text)
-
 
         if citationtableexists:
             totalcitations = citationcounts[0]
@@ -224,8 +227,8 @@ for authors in range(numberofauthors - indextostart + 1):
 
         for i in range(0, len(journalname)):
             GStitle += '{}) '.format(i + 1) + journalname[i] + '\n'
-            GSyear += '{}) '.format(i + 1) + journalyeardata[i] + '\n'\
-
+            GSyear += '{}) '.format(i + 1) + journalyeardata[i] + '\n'
+            
         for i in range(0, len(journalname)):
             GSAuthors += '{}) '.format(i + 1) + journalextracteddata[i * 2] + '\n'
 
@@ -272,16 +275,14 @@ for authors in range(numberofauthors - indextostart + 1):
 
     print('Progress: {} out of {} for {} done'.format(authors + indextostart, numberofauthors, name))
 
-    #if authors > 3:
+    # if authors > 3:
     #    break
-
 
 write_excel = create_excel_file('./results/{}_results.xlsx'.format('GSWebScrap'))
 wb = openpyxl.load_workbook(write_excel)
 ws = wb[wb.sheetnames[-1]]
 print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns), ws=ws)
 wb.save(write_excel)
-
 
 elapsed = (time.time() - start) / 3600
 print(f"Elapsed time: {elapsed} hours")
