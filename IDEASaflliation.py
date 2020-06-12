@@ -67,17 +67,24 @@ for i in links:
     if affiliationpage:
         h3 = div.find_all('h3')
         affiliation = ''
+        #affiliation = []
         for row in h3:
-            affiliation += row.text + '\n'
+            affiliation += row.text + '/'
+            #affiliation.append(row.text)
+
         location_counter = 1
         location = div.find_all('span', attrs={'class': 'locationlabel'})
         locationdata = ''
+        #locationdata = []
         for row in location:
-            locationdata += '{}) '.format(location_counter) + row.text + '\n'
+            #locationdata += '{}) '.format(location_counter) + row.text + '\n'
+            locationdata += row.text + '/'
             location_counter += 1
+            #locationdata.append(row.text)
     else:
         affiliation = 'NA'
         locationdata = 'NA'
+
 
     #print(affiliation)
     #print(locationdata)
@@ -102,7 +109,7 @@ print_df_to_excel(df=pd.DataFrame(data=personaldata, columns=data_store_columns)
 wb.save(write_excel)
 
 # store in pkl for future retrieve (no need to rerun code again)
-with open('IDEASaffiliation.pkl', 'wb') as handle:
+with open('IDEASaffiliationSecondVariant.pkl', 'wb') as handle:
     pickle.dump([data_store_columns, personaldata], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 elapsed = (time.time() - start)/3600

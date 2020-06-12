@@ -228,7 +228,7 @@ for authors in range(numberofauthors - indextostart + 1):
         for i in range(0, len(journalname)):
             GStitle += '{}) '.format(i + 1) + journalname[i] + '\n'
             GSyear += '{}) '.format(i + 1) + journalyeardata[i] + '\n'
-            
+
         for i in range(0, len(journalname)):
             GSAuthors += '{}) '.format(i + 1) + journalextracteddata[i * 2] + '\n'
 
