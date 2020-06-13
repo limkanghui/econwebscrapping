@@ -10,7 +10,7 @@ from stem import Signal
 from stem.control import Controller
 
 # First index is 1, index is number of current authors
-indextostart = 1664
+indextostart = 1
 
 start = time.time()
 
