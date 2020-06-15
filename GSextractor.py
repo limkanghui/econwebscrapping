@@ -38,7 +38,7 @@ for authors in range(numberofauthors - indextostart + 1):
 
     name = df['name'][authors + indextostart - 1]
 
-    name = 'Johannes Boehm'
+    #name = 'Johannes Boehm'
 
     print('Scrapping for {}...'.format(name))
 
