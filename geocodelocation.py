@@ -8,7 +8,7 @@ import numpy as np
 
 start = time.time()
 
-gmaps = googlemaps.Client(key='AIzaSyA3HH2p-xeU9J9hfyJUmJkfzEWvNNbMcDA')
+gmaps = googlemaps.Client(key='input API key here')
 
 state1data = []
 state2data = []
