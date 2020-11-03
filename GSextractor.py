@@ -8,14 +8,15 @@ import requests
 from fake_useragent import UserAgent
 from stem import Signal
 from stem.control import Controller
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
+
 
 # First index is 1, index is number of current authors
 indextostart = 1
 
+# Calculate time taken
 start = time.time()
 
+# User profiles accessing webpage
 headers = {'User-Agent': UserAgent().random}
 proxies = {
     'http': 'socks5://127.0.0.1:9150',
@@ -71,10 +72,12 @@ for authors in range(numberofauthors - indextostart + 1):
             print("Connection Successful with {}".format(IPaddress))
             break
         else:
+            # Make sure TOR Browser is installed, this allows us to change IP address VPN if connection failed.
             with Controller.from_port(port=9151) as c:
                 c.authenticate()
                 c.signal(Signal.NEWNYM)
             page = requests.get(URL, proxies=proxies, headers=headers)
+            # This line below identifies the exact IP Address used in TOR
             IPaddress = requests.get('https://ident.me', proxies=proxies).text
             print('Connection failed, retrying with {}...'.format(IPaddress))
 

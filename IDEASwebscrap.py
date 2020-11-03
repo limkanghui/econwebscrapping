@@ -79,7 +79,7 @@ for i in links:
     personaldetails.append(gender)
 
     # Get gender from genderAPI.io
-    #apiKey = "5ec95212756fae4edb711cf2"  # Your API Key
+    #apiKey = "abc123"  # Your API Key
     #apiUrl = "https://genderapi.io/api/?name={}&key=".format(personaldetails[1]) + apiKey
 #
     #result = urlopen(apiUrl).read().decode('utf-8')
